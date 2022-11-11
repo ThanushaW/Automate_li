@@ -1,4 +1,5 @@
 import json
+import string
 
 import pandas as pd
 import yaml
@@ -9,6 +10,7 @@ with open('config.yml', 'r') as file:
 with open('users_format.txt', 'r+') as f:
     # data = json.load(f)
     data = f.readlines()
+
 
 def decompose_excel():
     user_details = pd.read_excel(con['workbook_path'])
@@ -23,19 +25,24 @@ def decompose_excel():
             each_user_type.rename(columns={con['column_username']: con['wanted_format_columns'][1]}, inplace=True)
             each_user_type.to_excel(f'{value}.xlsx', index=False)
             js = each_user_type.to_dict(orient='records')
-            data[count+1] = f"   \"{con['default_roles'][count]}\":{js},\n"
+            json_str = str(js).replace("'", "\"")
+            data[count + 1] = f"   \"{con['default_roles'][count]}\":{json_str.translate(str.maketrans('', '', string.whitespace))},\n"
 
             # data[con['default_roles'][count]] = js
         count += 1
 
     with open('Test/test_json.txt', 'w') as f:
         f.writelines(data)
+        f.close()
 
-    encoded_users = str(data).encode("UTF-8")
+    with open('Test/test_json.txt', 'r') as f:
+        data1 = f.read()
+        f.close()
+
+    encoded_users = str(data1).encode("UTF-8")
     base64_bytes = base64.b64encode(encoded_users)
     base64_string = base64_bytes.decode("UTF-8")
     return base64_string
-
 
 
 if __name__ == "__main__":
