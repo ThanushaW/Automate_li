@@ -1,6 +1,4 @@
-import json
 import string
-
 import pandas as pd
 import yaml
 import base64
@@ -8,42 +6,42 @@ import base64
 with open('config.yml', 'r') as file:
     con = yaml.safe_load(file)
 with open('users_format.txt', 'r+') as f:
-    # data = json.load(f)
     data = f.readlines()
 
 
-def decompose_excel():
+def get_encrypted_users():
     user_details = pd.read_excel(con['workbook_path'])
     user_details[con['column_user_type']] = user_details[con['column_user_type']].str.strip()
     count = 0
     for value in con['excel_roles']:
         each_user_type = user_details[user_details[con['column_user_type']] == value]
-        # print(len(each_user_type.index))
         if len(each_user_type.index):
             each_user_type = each_user_type.filter([con['column_id'], con['column_username']])
-            each_user_type.rename(columns={con['column_id']: con['wanted_format_columns'][0]}, inplace=True)
-            each_user_type.rename(columns={con['column_username']: con['wanted_format_columns'][1]}, inplace=True)
+            each_user_type.rename(columns={con['column_id']: 'id'}, inplace=True)
+            each_user_type.rename(columns={con['column_username']: 'name'}, inplace=True)
             each_user_type.to_excel(f'{value}.xlsx', index=False)
             js = each_user_type.to_dict(orient='records')
             json_str = str(js).replace("'", "\"")
-            data[count + 1] = f"   \"{con['default_roles'][count]}\":{json_str.translate(str.maketrans('', '', string.whitespace))},\n"
+            data[
+                count + 1] = f"   \"{con['default_roles'][count]}\":{json_str.translate(str.maketrans('', '', string.whitespace))},\n"
 
-            # data[con['default_roles'][count]] = js
         count += 1
+    data_str = ''.join(data)
 
-    with open('Test/test_json.txt', 'w') as f:
-        f.writelines(data)
-        f.close()
-
-    with open('Test/test_json.txt', 'r') as f:
-        data1 = f.read()
-        f.close()
-
-    encoded_users = str(data1).encode("UTF-8")
+    encoded_users = str(data_str).encode("UTF-8")
     base64_bytes = base64.b64encode(encoded_users)
     base64_string = base64_bytes.decode("UTF-8")
     return base64_string
 
 
 if __name__ == "__main__":
-    print(decompose_excel())
+    result = get_encrypted_users()
+    with open('Test/test_decoded_json_manual.txt', 'r') as f:
+        test_data_set = f.read()
+    with open('Test/test_decoded_json_automate.txt', 'w') as f:
+        f.write(result)
+
+    if test_data_set == result:
+        print('Automated and manual provide same results. Success !')
+    else:
+        print('Automation failed !')
